@@ -53,6 +53,51 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: incidentiq-backend:latest
+    container_name: incidentiq-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/incidentiq
+      DB_USER: incidentiq
+      DB_PASSWORD: incidentiq_secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP: kafka:29092
+      KAFKA_AUTO_STARTUP: "true"
+      JWT_SECRET: ${JWT_SECRET:-incidentiq-super-secret-key-that-is-at-least-256-bits-long-for-hmac-sha256}
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-admin@incidentiq.local}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-AdminInitialPassword123!}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-claude-3-5-sonnet-20241022}
+      FRONTEND_ORIGIN: http://localhost
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: incidentiq-frontend:latest
+    container_name: incidentiq-frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: incidentiq-prometheus
@@ -61,6 +106,8 @@ services:
       - "9090:9090"
     volumes:
       - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - backend
 
   grafana:
     image: grafana/grafana:10.4.0

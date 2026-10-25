@@ -1,0 +1,41 @@
+{
+  "family": "incidentiq-frontend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/incidentiqFrontendTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "frontend",
+      "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/incidentiq-frontend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/incidentiq-frontend",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "frontend"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "wget -q --spider http://localhost/ || exit 1"
+        ],
+        "interval": 15,
+        "timeout": 3,
+        "retries": 3,
+        "startPeriod": 10
+      }
+    }
+  ]
+}

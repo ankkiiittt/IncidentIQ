@@ -1,0 +1,70 @@
+{
+  "family": "incidentiq-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/incidentiqBackendTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/incidentiq-backend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "SPRING_PROFILES_ACTIVE", "value": "prod" },
+        { "name": "DB_URL", "value": "jdbc:postgresql://rds.incidentiq.internal:5432/incidentiq" },
+        { "name": "DB_USER", "value": "incidentiq_app" },
+        { "name": "REDIS_HOST", "value": "redis.incidentiq.internal" },
+        { "name": "REDIS_PORT", "value": "6379" },
+        { "name": "KAFKA_BOOTSTRAP", "value": "b-1.msk.incidentiq.internal:9092,b-2.msk.incidentiq.internal:9092" },
+        { "name": "KAFKA_AUTO_STARTUP", "value": "true" },
+        { "name": "FRONTEND_ORIGIN", "value": "https://incidentiq.company.com" },
+        { "name": "AI_CHAT_MODEL", "value": "claude-3-5-sonnet-20241022" }
+      ],
+      "secrets": [
+        {
+          "name": "DB_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:incidentiq/prod/database:password::"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:incidentiq/prod/jwt:secret::"
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:incidentiq/prod/ai:anthropic_api_key::"
+        },
+        {
+          "name": "INGEST_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:incidentiq/prod/ingest:api_key::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/incidentiq-backend",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "backend"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8080/actuator/health || exit 1"
+        ],
+        "interval": 15,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      }
+    }
+  ]
+}
