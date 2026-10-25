@@ -65,6 +65,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 
+    @ExceptionHandler({org.springframework.orm.ObjectOptimisticLockingFailureException.class, jakarta.persistence.OptimisticLockException.class})
+    public ResponseEntity<ProblemDetail> handleOptimisticLockException(Exception ex) {
+        log.warn("Optimistic locking conflict: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                ErrorCode.STALE_VERSION.getDefaultMessage()
+        );
+        enrichProblemDetail(problem, ErrorCode.STALE_VERSION.getCode());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGenericException(Exception ex) {
         log.error("Unhandled internal server error: ", ex);

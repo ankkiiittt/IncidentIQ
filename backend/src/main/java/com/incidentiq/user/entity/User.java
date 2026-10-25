@@ -99,6 +99,10 @@ public class User {
         return name;
     }
 
+    public String getFullName() {
+        return name;
+    }
+
     public void setName(String name) {
         this.name = name;
     }
@@ -128,6 +132,10 @@ public class User {
     }
 
     public boolean isEnabled() {
+        return enabled;
+    }
+
+    public boolean isActive() {
         return enabled;
     }
 

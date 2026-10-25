@@ -46,6 +46,10 @@ public class UserPrincipal implements UserDetails {
         return id;
     }
 
+    public UUID getUserId() {
+        return id;
+    }
+
     public String getEmail() {
         return email;
     }
