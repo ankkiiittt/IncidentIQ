@@ -3,6 +3,7 @@ target/
 backend/target/
 frontend/dist/
 frontend/node_modules/
+*.tsbuildinfo
 ml-service/__pycache__/
 ml-service/.venv/
 
