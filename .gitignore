@@ -1,0 +1,25 @@
+# Target and build directories
+target/
+backend/target/
+frontend/dist/
+frontend/node_modules/
+ml-service/__pycache__/
+ml-service/.venv/
+
+# Environment and secrets
+.env
+.env.local
+*.env
+*.pem
+*.key
+
+# IDE and OS files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+
+# Testcontainers / Docker
+.testcontainers/

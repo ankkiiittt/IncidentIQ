@@ -1,0 +1,17 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: incidentiq-backend-test
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

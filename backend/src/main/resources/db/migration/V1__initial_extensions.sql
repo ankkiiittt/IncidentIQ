@@ -1,0 +1,6 @@
+-- V1__initial_extensions.sql
+-- IncidentIQ: Enable pgvector and pgcrypto extensions
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "vector";
