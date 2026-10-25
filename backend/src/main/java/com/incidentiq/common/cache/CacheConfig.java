@@ -27,6 +27,7 @@ public class CacheConfig implements CachingConfigurer {
 
     public static final String DASHBOARD_CACHE = "dashboardCache";
     public static final String SERVICES_CACHE = "servicesCache";
+    public static final String ANALYTICS_CACHE = "analyticsCache";
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory, com.fasterxml.jackson.databind.ObjectMapper objectMapper) {

@@ -10,6 +10,7 @@ import { CreateIncidentPage } from './pages/CreateIncidentPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { IncidentDetailPage } from './pages/IncidentDetailPage';
 import { IncidentListPage } from './pages/IncidentListPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 import { KnowledgePage } from './pages/KnowledgePage';
 import { LoginPage } from './pages/LoginPage';
 import { ServicesPage } from './pages/ServicesPage';
@@ -82,6 +83,7 @@ export default function App(): React.JSX.Element {
             <Route path="incidents/:id" element={<IncidentDetailPage />} />
             <Route path="services" element={<ServicesPage />} />
             <Route path="knowledge" element={<KnowledgePage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="account" element={<AccountPage />} />
           </Route>

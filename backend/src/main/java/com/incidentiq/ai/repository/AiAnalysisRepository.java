@@ -16,4 +16,14 @@ public interface AiAnalysisRepository extends JpaRepository<AiAnalysis, UUID> {
     Optional<AiAnalysis> findFirstByIncidentIdOrderByCreatedAtDesc(UUID incidentId);
 
     long countByIncidentId(UUID incidentId);
+
+    long countByCreatedAtGreaterThanEqualAndStatus(java.time.Instant since, com.incidentiq.ai.entity.AnalysisStatus status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(AVG(a.confidence), 0.0) FROM AiAnalysis a WHERE a.createdAt >= :since AND a.status = :status")
+    Double getAvgConfidence(@org.springframework.data.repository.query.Param("since") java.time.Instant since,
+                            @org.springframework.data.repository.query.Param("status") com.incidentiq.ai.entity.AnalysisStatus status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(AVG(a.latencyMs), 0.0) FROM AiAnalysis a WHERE a.createdAt >= :since AND a.status = :status")
+    Double getAvgLatencyMs(@org.springframework.data.repository.query.Param("since") java.time.Instant since,
+                           @org.springframework.data.repository.query.Param("status") com.incidentiq.ai.entity.AnalysisStatus status);
 }

@@ -11,4 +11,8 @@ import java.util.UUID;
 public interface RecommendationRepository extends JpaRepository<Recommendation, UUID> {
 
     List<Recommendation> findByAnalysisIdOrderByPositionAsc(UUID analysisId);
+
+    long countByCreatedAtGreaterThanEqualAndFeedbackRating(java.time.Instant since, com.incidentiq.ai.entity.FeedbackRating feedbackRating);
+
+    long countByCreatedAtGreaterThanEqualAndStatus(java.time.Instant since, com.incidentiq.ai.entity.RecommendationStatus status);
 }

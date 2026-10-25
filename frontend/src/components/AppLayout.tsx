@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
+  BarChart3,
   BookOpen,
   KeyRound,
   LogOut,
@@ -123,6 +124,20 @@ export const AppLayout: React.FC = () => {
               >
                 <BookOpen className="w-4 h-4" />
                 Knowledge Base
+              </NavLink>
+
+              <NavLink
+                to="/analytics"
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                    isActive
+                      ? 'bg-primary-light text-primary font-semibold'
+                      : 'text-muted hover:text-text hover:bg-slate-50'
+                  }`
+                }
+              >
+                <BarChart3 className="w-4 h-4" />
+                Analytics
               </NavLink>
 
               {user?.role === 'ADMIN' && (

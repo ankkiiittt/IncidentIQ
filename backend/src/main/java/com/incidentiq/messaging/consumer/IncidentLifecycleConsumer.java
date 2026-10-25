@@ -107,6 +107,11 @@ public class IncidentLifecycleConsumer {
                 servicesCache.clear();
                 log.debug("Invalidated servicesCache");
             }
+            var analyticsCache = cacheManager.getCache("analyticsCache");
+            if (analyticsCache != null) {
+                analyticsCache.clear();
+                log.debug("Invalidated analyticsCache");
+            }
         } catch (Exception e) {
             log.warn("Failed to invalidate cache: {}", e.getMessage());
         }
