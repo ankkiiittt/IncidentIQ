@@ -20,4 +20,6 @@ public interface ServiceRepository extends JpaRepository<ServiceEntity, UUID> {
     boolean existsByNameIgnoreCaseAndEnvironmentAndIdNot(String name, ServiceEnvironment environment, UUID id);
 
     Page<ServiceEntity> findByActiveTrue(Pageable pageable);
+
+    long countByActiveTrue();
 }

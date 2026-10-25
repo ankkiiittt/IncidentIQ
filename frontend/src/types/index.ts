@@ -137,3 +137,44 @@ export interface PagedResponse<T> {
   size?: number;
   number?: number;
 }
+
+export interface DashboardKpis {
+  openP1: number;
+  openP2: number;
+  openP3: number;
+  openP4: number;
+  totalOpen: number;
+  unassigned: number;
+  slaBreached: number;
+  slaAtRisk: number;
+  resolvedLast7Days: number;
+  mttrMinutes: number;
+}
+
+export interface DailyTrendPoint {
+  date: string;
+  createdCount: number;
+  resolvedCount: number;
+}
+
+export interface TopAffectedService {
+  serviceId: string;
+  serviceName: string;
+  serviceTier: string;
+  activeIncidents: number;
+  totalIncidents: number;
+}
+
+export interface ServiceHealthSummary {
+  totalServices: number;
+  healthyServices: number;
+  degradedServices: number;
+}
+
+export interface DashboardData {
+  kpis: DashboardKpis;
+  trend30Days: DailyTrendPoint[];
+  topAffectedServices: TopAffectedService[];
+  recentIncidents: IncidentSummary[];
+  serviceHealth: ServiceHealthSummary;
+}
