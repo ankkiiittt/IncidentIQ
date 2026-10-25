@@ -3,6 +3,7 @@ package com.incidentiq.common.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incidentiq.auth.security.JwtAuthenticationFilter;
 import com.incidentiq.common.error.ErrorCode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
+
+    @Autowired(required = false)
+    private com.incidentiq.auth.security.LoginRateLimitFilter loginRateLimitFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -64,8 +68,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/auth/change-password", "/api/auth/me").authenticated()
                         .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                );
+
+        if (loginRateLimitFilter != null) {
+            http.addFilterBefore(loginRateLimitFilter, UsernamePasswordAuthenticationFilter.class);
+        }
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -32,6 +32,7 @@ public class DashboardService {
         this.serviceRepository = serviceRepository;
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "dashboardCache", key = "'overview'")
     public DashboardResponse getDashboardData() {
         Instant now = Instant.now();
 

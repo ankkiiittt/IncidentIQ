@@ -38,6 +38,37 @@ spring:
     baseline-on-migrate: true
     locations: classpath:db/migration
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 1000ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    admin:
+      auto-create: false
+      fail-fast: false
+    properties:
+      request.timeout.ms: 2000
+      default.api.timeout.ms: 2000
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: incidentiq-backend
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      auto-startup: ${KAFKA_AUTO_STARTUP:false}
+
+incidentiq:
+  outbox:
+    interval-ms: 1000
+
 management:
   endpoints:
     web:

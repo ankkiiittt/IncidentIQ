@@ -11,6 +11,7 @@ import com.incidentiq.incident.repository.CommentRepository;
 import com.incidentiq.incident.repository.IncidentEventRepository;
 import com.incidentiq.incident.repository.IncidentRepository;
 import com.incidentiq.incident.repository.IncidentSpecifications;
+import com.incidentiq.messaging.dto.*;
 import com.incidentiq.user.entity.User;
 import com.incidentiq.user.entity.UserRole;
 import com.incidentiq.user.repository.UserRepository;
@@ -40,6 +41,30 @@ public class IncidentService {
     private final IncidentStateMachine incidentStateMachine;
     private final AuditService auditService;
     private final jakarta.persistence.EntityManager entityManager;
+    private final com.incidentiq.messaging.service.OutboxService outboxService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public IncidentService(IncidentRepository incidentRepository,
+                           IncidentEventRepository incidentEventRepository,
+                           CommentRepository commentRepository,
+                           CatalogService catalogService,
+                           UserRepository userRepository,
+                           SlaCalculator slaCalculator,
+                           IncidentStateMachine incidentStateMachine,
+                           AuditService auditService,
+                           jakarta.persistence.EntityManager entityManager,
+                           @org.springframework.beans.factory.annotation.Autowired(required = false) com.incidentiq.messaging.service.OutboxService outboxService) {
+        this.incidentRepository = incidentRepository;
+        this.incidentEventRepository = incidentEventRepository;
+        this.commentRepository = commentRepository;
+        this.catalogService = catalogService;
+        this.userRepository = userRepository;
+        this.slaCalculator = slaCalculator;
+        this.incidentStateMachine = incidentStateMachine;
+        this.auditService = auditService;
+        this.entityManager = entityManager;
+        this.outboxService = outboxService;
+    }
 
     public IncidentService(IncidentRepository incidentRepository,
                            IncidentEventRepository incidentEventRepository,
@@ -50,15 +75,8 @@ public class IncidentService {
                            IncidentStateMachine incidentStateMachine,
                            AuditService auditService,
                            jakarta.persistence.EntityManager entityManager) {
-        this.incidentRepository = incidentRepository;
-        this.incidentEventRepository = incidentEventRepository;
-        this.commentRepository = commentRepository;
-        this.catalogService = catalogService;
-        this.userRepository = userRepository;
-        this.slaCalculator = slaCalculator;
-        this.incidentStateMachine = incidentStateMachine;
-        this.auditService = auditService;
-        this.entityManager = entityManager;
+        this(incidentRepository, incidentEventRepository, commentRepository, catalogService, userRepository,
+                slaCalculator, incidentStateMachine, auditService, entityManager, null);
     }
 
     public IncidentDetailResponse createIncident(CreateIncidentRequest request, User reporter, String ipAddress) {
@@ -115,6 +133,19 @@ public class IncidentService {
                 saved.getId().toString(),
                 Map.of("number", saved.getFormattedNumber(), "priority", saved.getPriority().name()),
                 ipAddress
+        );
+
+        publishOutboxEvent(
+                "INCIDENT",
+                saved.getId(),
+                KafkaTopics.INCIDENT_CREATED,
+                new IncidentCreatedPayload(
+                        saved.getId(),
+                        saved.getService().getId(),
+                        saved.getPriority().name(),
+                        saved.getSeverity().name(),
+                        reporter.getId()
+                )
         );
 
         return IncidentDetailResponse.fromEntity(saved);
@@ -188,6 +219,19 @@ public class IncidentService {
                 ipAddress
         );
 
+        publishOutboxEvent(
+                "INCIDENT",
+                saved.getId(),
+                KafkaTopics.INCIDENT_UPDATED,
+                new IncidentUpdatedPayload(
+                        saved.getId(),
+                        saved.getStatus().name(),
+                        saved.getPriority().name(),
+                        actor.getId(),
+                        "ASSIGNED"
+                )
+        );
+
         return IncidentDetailResponse.fromEntity(saved);
     }
 
@@ -232,6 +276,19 @@ public class IncidentService {
                 id.toString(),
                 Map.of("oldPriority", oldPriority.name(), "newPriority", newPriority.name()),
                 ipAddress
+        );
+
+        publishOutboxEvent(
+                "INCIDENT",
+                saved.getId(),
+                KafkaTopics.INCIDENT_ESCALATED,
+                new IncidentEscalatedPayload(
+                        saved.getId(),
+                        oldPriority.name(),
+                        newPriority.name(),
+                        actor.getId(),
+                        request.reason()
+                )
         );
 
         return IncidentDetailResponse.fromEntity(saved);
@@ -292,6 +349,19 @@ public class IncidentService {
                 id.toString(),
                 Map.of("from", oldStatus.name(), "to", targetStatus.name()),
                 ipAddress
+        );
+
+        publishOutboxEvent(
+                "INCIDENT",
+                saved.getId(),
+                KafkaTopics.INCIDENT_UPDATED,
+                new IncidentUpdatedPayload(
+                        saved.getId(),
+                        targetStatus.name(),
+                        saved.getPriority().name(),
+                        actor.getId(),
+                        "STATUS_TRANSITION"
+                )
         );
 
         return IncidentDetailResponse.fromEntity(saved);
@@ -357,6 +427,12 @@ public class IncidentService {
     private void validateSnippetSize(String snippet) {
         if (snippet != null && snippet.getBytes(StandardCharsets.UTF_8).length > 4096) {
             throw new AppException(ErrorCode.VALIDATION_FAILED, "Log snippet exceeds 4 KB maximum size");
+        }
+    }
+
+    private void publishOutboxEvent(String aggregateType, UUID aggregateId, String eventType, Object payload) {
+        if (outboxService != null) {
+            outboxService.publish(aggregateType, aggregateId, eventType, payload);
         }
     }
 }
