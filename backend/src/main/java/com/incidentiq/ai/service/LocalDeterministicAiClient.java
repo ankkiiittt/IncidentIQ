@@ -158,7 +158,20 @@ public class LocalDeterministicAiClient implements AiClient {
     }
 
     private IncidentCategory inferCategory(String prompt, RetrievedChunk topChunk) {
-        String combined = (prompt + " " + topChunk.title() + " " + topChunk.snippet()).toLowerCase();
+        String incidentSection = prompt;
+        int evidenceIdx = prompt.indexOf("=== EVIDENCE ===");
+        if (evidenceIdx != -1) {
+            incidentSection = prompt.substring(0, evidenceIdx);
+        }
+        String topChunkText = topChunk != null ? (topChunk.title() + " " + topChunk.snippet()) : "";
+        String combined = (incidentSection + " " + topChunkText).toLowerCase();
+
+        if (combined.contains("redis") || combined.contains("cpu") || combined.contains("memory") || combined.contains("oom") || combined.contains("eviction")) {
+            return IncidentCategory.INFRASTRUCTURE;
+        }
+        if (combined.contains("partner") || combined.contains("payment gateway") || combined.contains("vendor") || combined.contains("external") || combined.contains("third-party") || combined.contains("third_party")) {
+            return IncidentCategory.THIRD_PARTY;
+        }
         if (combined.contains("database") || combined.contains("postgres") || combined.contains("hikaricp") || combined.contains("sql") || combined.contains("query")) {
             return IncidentCategory.DATABASE;
         }
@@ -167,9 +180,6 @@ public class LocalDeterministicAiClient implements AiClient {
         }
         if (combined.contains("network") || combined.contains("dns") || combined.contains("connection refused") || combined.contains("packet")) {
             return IncidentCategory.NETWORK;
-        }
-        if (combined.contains("redis") || combined.contains("cpu") || combined.contains("memory") || combined.contains("oom") || combined.contains("disk")) {
-            return IncidentCategory.INFRASTRUCTURE;
         }
         if (combined.contains("deploy") || combined.contains("release") || combined.contains("rollback")) {
             return IncidentCategory.DEPLOYMENT;

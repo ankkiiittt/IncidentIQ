@@ -1,0 +1,106 @@
+{
+  "description": "Held-out evaluation dataset for IncidentIQ F14 AI Evaluation Harness. Explicitly disclosed as synthetic data.",
+  "syntheticDisclosed": true,
+  "cases": [
+    {
+      "id": "11111111-1111-1111-1111-111111111101",
+      "title": "PostgreSQL connection pool exhausted on checkout service",
+      "description": "HikariCP pool reports: Connection is not available, request timed out after 30000ms. Checkout endpoints returning HTTP 500.",
+      "category": "DATABASE",
+      "priority": "P1",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": "Database Connection Pool Exhaustion",
+      "isOutOfScope": false
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111102",
+      "title": "Severe query blocking and Hikari connection leak on order database",
+      "description": "Active connections hit maximum 15. pg_stat_activity shows exclusive row lock held over 45 seconds.",
+      "category": "DATABASE",
+      "priority": "P2",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": "Database Connection Pool Exhaustion",
+      "isOutOfScope": false
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111103",
+      "title": "Downstream payment gateway SSL handshake exception during card processing",
+      "description": "PKIX path building failed: unable to find valid certification path to requested target. Credit card authorizations failing 502 Bad Gateway.",
+      "category": "THIRD_PARTY",
+      "priority": "P1",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": "Payment Gateway TLS Handshake",
+      "isOutOfScope": false
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111104",
+      "title": "Expired partner certificate blocking payment transactions",
+      "description": "Payment authorization worker threads failing with SSLHandshakeException after partner rotated certificates.",
+      "category": "THIRD_PARTY",
+      "priority": "P1",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": "Payment Gateway TLS Handshake",
+      "isOutOfScope": false
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111105",
+      "title": "Redis cache cluster OOM eviction storm causing database overload",
+      "description": "Redis memory maxmemory reached. Logs show OOM command not allowed when used memory > maxmemory. Cache miss rate 98%.",
+      "category": "INFRASTRUCTURE",
+      "priority": "P2",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": "Redis Cache Latency & OOM Eviction",
+      "isOutOfScope": false
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111106",
+      "title": "Elevated Redis cache latency on session tokens",
+      "description": "p99 latency elevated to 80ms on Redis GET requests. Slowlog shows large scan/keys operations impacting throughput.",
+      "category": "INFRASTRUCTURE",
+      "priority": "P3",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": "Redis Cache Latency & OOM Eviction",
+      "isOutOfScope": false
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111107",
+      "title": "Global checkout failure caused by partner certificate expiration",
+      "description": "Incident commanders investigating total checkout failure after downstream payment partner rotated intermediate CA certificate.",
+      "category": "THIRD_PARTY",
+      "priority": "P1",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": "Postmortem: Global Checkout Failure",
+      "isOutOfScope": false
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111108",
+      "title": "Building B 3rd Floor HVAC Chiller Temperature Sensor Disconnected",
+      "description": "Facility management reports HVAC chiller 2 temperature probe disconnected. Ambient air temperature elevated in conference wing.",
+      "category": "INFRASTRUCTURE",
+      "priority": "P4",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": null,
+      "isOutOfScope": true
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111109",
+      "title": "Reception desk thermal receipt badge printer paper feed motor failure",
+      "description": "Visitor check-in kiosk paper feed mechanism is jammed. Front desk staff cannot print visitor identification passes.",
+      "category": "OTHER",
+      "priority": "P4",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": null,
+      "isOutOfScope": true
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111110",
+      "title": "Company cafeteria digital menu board firmware reboot loop",
+      "description": "HDMI wall displays in building 1 cafeteria displaying bootloader recovery screen after nighttime OTA firmware refresh.",
+      "category": "APPLICATION",
+      "priority": "P4",
+      "serviceName": "checkout-api",
+      "expectedRunbookSubstring": null,
+      "isOutOfScope": true
+    }
+  ]
+}

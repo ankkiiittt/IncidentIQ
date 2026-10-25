@@ -49,6 +49,9 @@ public class IncidentService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.incidentiq.notification.service.NotificationBroadcaster notificationBroadcaster;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.incidentiq.common.metrics.AppMetrics appMetrics;
+
     @org.springframework.beans.factory.annotation.Autowired
     public IncidentService(IncidentRepository incidentRepository,
                            IncidentEventRepository incidentEventRepository,
@@ -155,6 +158,13 @@ public class IncidentService {
         );
 
         IncidentDetailResponse response = IncidentDetailResponse.fromEntity(saved);
+        if (appMetrics != null) {
+            appMetrics.incrementIncidentCreated(
+                    saved.getSeverity() != null ? saved.getSeverity().name() : "UNKNOWN",
+                    saved.getPriority() != null ? saved.getPriority().name() : "UNKNOWN",
+                    saved.getCategory() != null ? saved.getCategory().name() : "UNKNOWN"
+            );
+        }
         if (notificationBroadcaster != null) {
             notificationBroadcaster.broadcastIncident(response, "CREATED");
         }
@@ -373,8 +383,20 @@ public class IncidentService {
 
         Incident saved = incidentRepository.saveAndFlush(incident);
 
-        if (targetStatus == IncidentStatus.RESOLVED && knowledgeService != null) {
-            knowledgeService.ingestIncidentAsDocument(saved);
+        if (targetStatus == IncidentStatus.RESOLVED) {
+            if (appMetrics != null) {
+                double mttrSeconds = 0;
+                if (saved.getCreatedAt() != null && saved.getResolvedAt() != null) {
+                    mttrSeconds = java.time.Duration.between(saved.getCreatedAt(), saved.getResolvedAt()).toSeconds();
+                }
+                appMetrics.incrementIncidentResolved(
+                        saved.getCategory() != null ? saved.getCategory().name() : "UNKNOWN",
+                        mttrSeconds
+                );
+            }
+            if (knowledgeService != null) {
+                knowledgeService.ingestIncidentAsDocument(saved);
+            }
         }
 
         incidentEventRepository.save(new IncidentEvent(
@@ -499,5 +521,9 @@ public class IncidentService {
         if (outboxService != null) {
             outboxService.publish(aggregateType, aggregateId, eventType, payload);
         }
+    }
+
+    public void setAppMetrics(com.incidentiq.common.metrics.AppMetrics appMetrics) {
+        this.appMetrics = appMetrics;
     }
 }

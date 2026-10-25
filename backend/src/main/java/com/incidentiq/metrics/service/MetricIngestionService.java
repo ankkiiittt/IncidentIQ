@@ -36,6 +36,9 @@ public class MetricIngestionService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.incidentiq.notification.service.NotificationBroadcaster notificationBroadcaster;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.incidentiq.common.metrics.AppMetrics appMetrics;
+
     public MetricIngestionService(
             MetricRepository metricRepository,
             PredictionRepository predictionRepository,
@@ -81,6 +84,10 @@ public class MetricIngestionService {
             }
         }
 
+        if (appMetrics != null && insertedCount > 0) {
+            appMetrics.incrementMetricsIngested(insertedCount);
+        }
+
         int anomaliesDetected = 0;
         for (UUID serviceId : affectedServices) {
             try {
@@ -113,6 +120,10 @@ public class MetricIngestionService {
                         Prediction saved = predictionRepository.save(prediction);
                         anomaliesDetected++;
 
+                        if (appMetrics != null) {
+                            appMetrics.incrementPredictionCreated(saved.getRiskLevel().name());
+                        }
+
                         if (notificationBroadcaster != null) {
                             notificationBroadcaster.broadcastPrediction(PredictionResponse.fromEntity(saved));
                         }
@@ -138,5 +149,9 @@ public class MetricIngestionService {
         }
 
         return new MetricBatchResponse(total, insertedCount, duplicates, anomaliesDetected);
+    }
+
+    public void setAppMetrics(com.incidentiq.common.metrics.AppMetrics appMetrics) {
+        this.appMetrics = appMetrics;
     }
 }

@@ -54,6 +54,9 @@ public class AiDiagnosticService {
     @Autowired(required = false)
     private com.incidentiq.notification.service.NotificationBroadcaster notificationBroadcaster;
 
+    @Autowired(required = false)
+    private com.incidentiq.common.metrics.AppMetrics appMetrics;
+
     @Autowired
     public AiDiagnosticService(AiAnalysisRepository analysisRepository,
                                RecommendationRepository recommendationRepository,
@@ -95,6 +98,23 @@ public class AiDiagnosticService {
 
         Incident incident = incidentRepository.findById(incidentId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Incident not found with id: " + incidentId));
+
+        // Cache check: return recent completed analysis within 60s
+        List<AiAnalysis> existing = analysisRepository.findByIncidentIdOrderByCreatedAtDesc(incidentId);
+        if (existing != null && !existing.isEmpty()) {
+            AiAnalysis latest = existing.get(0);
+            if (latest.getStatus() == AnalysisStatus.COMPLETED &&
+                    latest.getCompletedAt() != null &&
+                    latest.getCompletedAt().isAfter(Instant.now().minusSeconds(60))) {
+                if (appMetrics != null) {
+                    appMetrics.incrementAiCacheHit();
+                }
+                return AiAnalysisResponse.fromEntity(latest);
+            }
+        }
+        if (appMetrics != null) {
+            appMetrics.incrementAiCacheMiss();
+        }
 
         long startTimeMs = System.currentTimeMillis();
         String safeCorrelationId = correlationId != null ? correlationId : UUID.randomUUID().toString();
@@ -159,6 +179,9 @@ public class AiDiagnosticService {
                 savedAnalysis.setCompletedAt(Instant.now());
 
                 AiAnalysis finalized = analysisRepository.saveAndFlush(savedAnalysis);
+                if (appMetrics != null) {
+                    appMetrics.recordAiDiagnosticsDuration(finalized.getLatencyMs() != null ? finalized.getLatencyMs() : 0);
+                }
                 recordTimelineEvent(incident, IncidentEventType.AI_ANALYSIS_COMPLETED, requester, Map.of(
                         "analysisId", finalized.getId().toString(),
                         "status", finalized.getStatus().name(),
@@ -240,6 +263,14 @@ public class AiDiagnosticService {
             }
 
             AiAnalysis finalized = analysisRepository.saveAndFlush(savedAnalysis);
+
+            if (appMetrics != null) {
+                appMetrics.recordAiDiagnosticsDuration(finalized.getLatencyMs() != null ? finalized.getLatencyMs() : 0);
+                appMetrics.recordAiTokens(
+                        finalized.getInputTokens() != null ? finalized.getInputTokens() : 0,
+                        finalized.getOutputTokens() != null ? finalized.getOutputTokens() : 0
+                );
+            }
 
             // 8. Record Timeline & Audit & Outbox
             recordTimelineEvent(incident, IncidentEventType.AI_ANALYSIS_COMPLETED, requester, Map.of(
@@ -380,5 +411,9 @@ public class AiDiagnosticService {
     private int estimateTokenCount(String text) {
         if (text == null || text.isEmpty()) return 0;
         return text.length() / 4;
+    }
+
+    public void setAppMetrics(com.incidentiq.common.metrics.AppMetrics appMetrics) {
+        this.appMetrics = appMetrics;
     }
 }
