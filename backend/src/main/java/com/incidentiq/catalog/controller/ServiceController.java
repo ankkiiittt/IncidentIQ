@@ -12,8 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.incidentiq.metrics.dto.ServiceHealthDetailResponse;
+import com.incidentiq.metrics.dto.ServiceHealthSummary;
+import com.incidentiq.metrics.service.ServiceHealthService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -21,9 +25,11 @@ import java.util.UUID;
 public class ServiceController {
 
     private final CatalogService catalogService;
+    private final ServiceHealthService serviceHealthService;
 
-    public ServiceController(CatalogService catalogService) {
+    public ServiceController(CatalogService catalogService, ServiceHealthService serviceHealthService) {
         this.catalogService = catalogService;
+        this.serviceHealthService = serviceHealthService;
     }
 
     @GetMapping
@@ -33,6 +39,18 @@ public class ServiceController {
             @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(catalogService.listServices(activeOnly, pageable));
+    }
+
+    @GetMapping("/health")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ServiceHealthSummary>> listServicesHealth() {
+        return ResponseEntity.ok(serviceHealthService.getAllServicesHealth());
+    }
+
+    @GetMapping("/{id}/health")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ServiceHealthDetailResponse> getServiceHealth(@PathVariable UUID id) {
+        return ResponseEntity.ok(serviceHealthService.getServiceHealth(id));
     }
 
     @GetMapping("/{id}")

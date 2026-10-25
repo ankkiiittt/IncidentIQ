@@ -68,6 +68,7 @@ spring:
 incidentiq:
   outbox:
     interval-ms: 1000
+  ingest-api-key: ${INGEST_API_KEY:test-ingest-key-12345}
 
 management:
   endpoints:

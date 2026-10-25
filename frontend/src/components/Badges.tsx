@@ -163,3 +163,40 @@ export const CategoryBadge: React.FC<{ category: string }> = ({ category }) => {
     </span>
   );
 };
+
+export const HealthStatusBadge: React.FC<{ status: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | string }> = ({ status }) => {
+  const styles: Record<string, { bg: string; dot: string; label: string }> = {
+    HEALTHY: { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', label: 'Healthy' },
+    DEGRADED: { bg: 'bg-amber-50 text-amber-800 border-amber-300', dot: 'bg-amber-500', label: 'Degraded' },
+    CRITICAL: { bg: 'bg-red-50 text-red-700 border-red-300', dot: 'bg-red-500 animate-ping', label: 'Critical' },
+  };
+
+  const config = styles[status] || { bg: 'bg-slate-50 text-slate-700 border-slate-200', dot: 'bg-slate-400', label: status };
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full border ${config.bg}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+      {config.label}
+    </span>
+  );
+};
+
+export const RiskLevelBadge: React.FC<{ risk: 'LOW' | 'MEDIUM' | 'HIGH' | string; score?: number }> = ({ risk, score }) => {
+  const styles: Record<string, string> = {
+    HIGH: 'bg-red-100 text-red-800 border-red-300',
+    MEDIUM: 'bg-amber-100 text-amber-800 border-amber-300',
+    LOW: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  };
+
+  const style = styles[risk] || 'bg-slate-100 text-slate-700 border-slate-200';
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded border ${style}`}>
+      <span className="uppercase">{risk} Risk</span>
+      {score !== undefined && (
+        <span className="text-[11px] opacity-75 font-mono">({Math.round(score * 100)}%)</span>
+      )}
+    </span>
+  );
+};
+

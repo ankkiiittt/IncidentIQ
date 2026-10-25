@@ -1,6 +1,5 @@
-// src/pages/CreateIncidentPage.tsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -17,15 +16,17 @@ import { IncidentCategory, IncidentPriority, IncidentSeverity } from '../types';
 
 export const CreateIncidentPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefill || location.state || {};
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [serviceId, setServiceId] = useState('');
-  const [severity, setSeverity] = useState<IncidentSeverity>('MEDIUM');
-  const [priority, setPriority] = useState<IncidentPriority>('P3');
-  const [category, setCategory] = useState<IncidentCategory>('APPLICATION');
-  const [tagsInput, setTagsInput] = useState('');
-  const [logSnippet, setLogSnippet] = useState('');
+  const [title, setTitle] = useState(prefill.title || '');
+  const [description, setDescription] = useState(prefill.description || '');
+  const [serviceId, setServiceId] = useState(prefill.serviceId || '');
+  const [severity, setSeverity] = useState<IncidentSeverity>(prefill.severity || 'MEDIUM');
+  const [priority, setPriority] = useState<IncidentPriority>(prefill.priority || 'P3');
+  const [category, setCategory] = useState<IncidentCategory>(prefill.category || 'APPLICATION');
+  const [tagsInput, setTagsInput] = useState(prefill.tags ? (Array.isArray(prefill.tags) ? prefill.tags.join(', ') : prefill.tags) : '');
+  const [logSnippet, setLogSnippet] = useState(prefill.logSnippet || '');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Fetch active services
@@ -65,8 +66,8 @@ export const CreateIncidentPage: React.FC = () => {
 
     const tags = tagsInput
       .split(',')
-      .map((t) => t.trim().toLowerCase())
-      .filter((t) => t.length > 0);
+      .map((t: string) => t.trim().toLowerCase())
+      .filter((t: string) => t.length > 0);
 
     createMutation.mutate({
       title: title.trim(),

@@ -19,7 +19,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { getDashboardApi } from '../api/dashboard';
-import { PriorityBadge, SlaPill, StatusChip } from '../components/Badges';
+import { getActivePredictionsApi } from '../api/metrics';
+import { PriorityBadge, RiskLevelBadge, SlaPill, StatusChip } from '../components/Badges';
 import { useAuth } from '../context/AuthContext';
 
 export const DashboardPage: React.FC = () => {
@@ -38,6 +39,12 @@ export const DashboardPage: React.FC = () => {
     queryKey: ['dashboard-overview'],
     queryFn: getDashboardApi,
     refetchInterval: 30000, // refresh every 30s
+  });
+
+  const { data: activePredictions } = useQuery({
+    queryKey: ['dashboard-active-predictions'],
+    queryFn: () => getActivePredictionsApi(),
+    refetchInterval: 30000,
   });
 
   const canCreate =
@@ -475,6 +482,46 @@ export const DashboardPage: React.FC = () => {
 
         {/* Right Column (4 cols): Top Affected Services & Service Health */}
         <div className="lg:col-span-4 space-y-4">
+          {/* Active Predictive Alerts Panel (Tier 3 F11) */}
+          {activePredictions && activePredictions.length > 0 && (
+            <div className="card-surface p-4 border-l-4 border-l-red-500 space-y-3 bg-gradient-to-r from-red-50/60 to-white shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-red-900 flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-red-600 animate-pulse" />
+                  Predictive Anomaly Alerts
+                </h3>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-800 font-bold font-mono">
+                  {activePredictions.length} Active
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {activePredictions.slice(0, 3).map((pred) => (
+                  <div
+                    key={pred.id}
+                    onClick={() => navigate('/services')}
+                    className="p-2.5 rounded bg-white border border-red-200/80 hover:border-red-400 cursor-pointer transition-all shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-text">{pred.serviceName}</span>
+                      <RiskLevelBadge risk={pred.riskLevel} score={pred.anomalyScore} />
+                    </div>
+                    <p className="text-[11px] text-muted mt-1">
+                      Predicted horizon: <strong>{pred.horizonMinutes}m</strong> • Model: {pred.modelVersion}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                to="/services"
+                className="text-[11px] font-semibold text-red-700 hover:text-red-900 flex items-center justify-end gap-1"
+              >
+                Inspect Telemetry Multiples <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          )}
+
           {/* Service Health Card */}
           <div className="card-surface p-4 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">

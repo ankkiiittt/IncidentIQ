@@ -30,6 +30,10 @@ public interface IncidentRepository extends JpaRepository<Incident, UUID>, JpaSp
 
     long countByServiceId(UUID serviceId);
 
+    long countByServiceIdAndStatusIn(UUID serviceId, Collection<IncidentStatus> statuses);
+
+    List<Incident> findByServiceIdAndStatusInOrderByCreatedAtDesc(UUID serviceId, Collection<IncidentStatus> statuses);
+
     long countByPriorityAndStatusIn(IncidentPriority priority, Collection<IncidentStatus> statuses);
 
     long countByStatusIn(Collection<IncidentStatus> statuses);
