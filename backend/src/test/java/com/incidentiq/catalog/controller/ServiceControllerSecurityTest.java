@@ -48,6 +48,9 @@ class ServiceControllerSecurityTest {
     private CatalogService catalogService;
 
     @MockBean
+    private com.incidentiq.metrics.service.ServiceHealthService serviceHealthService;
+
+    @MockBean
     private JwtService jwtService;
 
     @Test

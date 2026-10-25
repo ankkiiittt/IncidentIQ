@@ -51,6 +51,9 @@ public class AiDiagnosticService {
     private final RateLimiterService rateLimiterService;
     private final OutboxService outboxService;
 
+    @Autowired(required = false)
+    private com.incidentiq.notification.service.NotificationBroadcaster notificationBroadcaster;
+
     @Autowired
     public AiDiagnosticService(AiAnalysisRepository analysisRepository,
                                RecommendationRepository recommendationRepository,
@@ -162,7 +165,11 @@ public class AiDiagnosticService {
                         "evidenceSufficient", false
                 ));
                 publishOutboxEvent(finalized);
-                return AiAnalysisResponse.fromEntity(finalized);
+                AiAnalysisResponse resp = AiAnalysisResponse.fromEntity(finalized);
+                if (notificationBroadcaster != null) {
+                    notificationBroadcaster.broadcastIncidentDetail(incident.getId(), "AI_ANALYSIS_COMPLETED", resp);
+                }
+                return resp;
             }
 
             // Map evidence items
@@ -253,7 +260,11 @@ public class AiDiagnosticService {
 
             publishOutboxEvent(finalized);
             log.info("AI diagnostic analysis completed for incident {} with status {}", incidentId, finalized.getStatus());
-            return AiAnalysisResponse.fromEntity(finalized);
+            AiAnalysisResponse resp = AiAnalysisResponse.fromEntity(finalized);
+            if (notificationBroadcaster != null) {
+                notificationBroadcaster.broadcastIncidentDetail(incident.getId(), "AI_ANALYSIS_COMPLETED", resp);
+            }
+            return resp;
 
         } catch (Exception e) {
             log.error("AI diagnostic pipeline failed for incident {}: {}", incidentId, e.getMessage(), e);

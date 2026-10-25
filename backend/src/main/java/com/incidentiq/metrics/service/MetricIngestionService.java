@@ -6,6 +6,7 @@ import com.incidentiq.messaging.service.OutboxService;
 import com.incidentiq.metrics.dto.MetricBatchRequest;
 import com.incidentiq.metrics.dto.MetricBatchResponse;
 import com.incidentiq.metrics.dto.MetricIngestItem;
+import com.incidentiq.metrics.dto.PredictionResponse;
 import com.incidentiq.metrics.entity.Prediction;
 import com.incidentiq.metrics.entity.PredictionRiskLevel;
 import com.incidentiq.metrics.entity.PredictionSource;
@@ -31,6 +32,9 @@ public class MetricIngestionService {
     private final CatalogService catalogService;
     private final StatisticalAnomalyDetector anomalyDetector;
     private final OutboxService outboxService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.incidentiq.notification.service.NotificationBroadcaster notificationBroadcaster;
 
     public MetricIngestionService(
             MetricRepository metricRepository,
@@ -108,6 +112,10 @@ public class MetricIngestionService {
 
                         Prediction saved = predictionRepository.save(prediction);
                         anomaliesDetected++;
+
+                        if (notificationBroadcaster != null) {
+                            notificationBroadcaster.broadcastPrediction(PredictionResponse.fromEntity(saved));
+                        }
 
                         // Outbox event for failure prediction
                         if (outboxService != null) {

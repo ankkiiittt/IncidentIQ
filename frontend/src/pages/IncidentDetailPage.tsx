@@ -34,12 +34,14 @@ import { getUsersApi } from '../api/users';
 import { AiDiagnosticsCard } from '../components/AiDiagnosticsCard';
 import { PriorityBadge, SeverityBadge, SlaPill, StatusChip } from '../components/Badges';
 import { useAuth } from '../context/AuthContext';
+import { useWebSocket } from '../context/WebSocketContext';
 import { IncidentStatus, SimilarIncident } from '../types';
 
 export const IncidentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { subscribeToIncident } = useWebSocket();
 
   // Modals & Action States
   const [isEscalateOpen, setIsEscalateOpen] = useState(false);
@@ -105,6 +107,16 @@ export const IncidentDetailPage: React.FC = () => {
     refetchTimeline();
     refetchSimilar();
   };
+
+  React.useEffect(() => {
+    if (!id) return;
+    const unsubscribe = subscribeToIncident(id, () => {
+      refetchIncident();
+      refetchComments();
+      refetchTimeline();
+    });
+    return unsubscribe;
+  }, [id, subscribeToIncident, refetchIncident, refetchComments, refetchTimeline]);
 
   // Mutations
   const transitionMutation = useMutation({

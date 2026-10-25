@@ -15,10 +15,14 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useWebSocket } from '../context/WebSocketContext';
 import { RoleBadge } from './Badges';
+import { NotificationBell } from './NotificationBell';
+import { LiveAlertToast } from './LiveAlertToast';
 
 export const AppLayout: React.FC = () => {
   const { user, logout } = useAuth();
+  const { status, reconnect } = useWebSocket();
   const navigate = useNavigate();
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -48,6 +52,21 @@ export const AppLayout: React.FC = () => {
               Change password now
             </Link>
           </span>
+        </div>
+      )}
+
+      {/* WebSocket Connection Lost Banner */}
+      {status === 'DISCONNECTED' && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-xs text-amber-800 flex items-center justify-center gap-2 animate-in fade-in">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          <span>Real-time connection lost. Live updates paused; 30s polling fallback active.</span>
+          <button
+            type="button"
+            onClick={reconnect}
+            className="ml-2 underline font-semibold text-amber-900 hover:text-amber-950 hover:underline"
+          >
+            Reconnect now
+          </button>
         </div>
       )}
 
@@ -204,7 +223,29 @@ export const AppLayout: React.FC = () => {
               />
             </form>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              {/* WebSocket Connection Status Pill */}
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border border-border bg-slate-50 text-muted"
+                title={`Real-time WebSocket: ${status}`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    status === 'CONNECTED'
+                      ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50'
+                      : status === 'CONNECTING'
+                      ? 'bg-amber-500 animate-ping'
+                      : 'bg-red-400'
+                  }`}
+                />
+                <span className="hidden sm:inline">
+                  {status === 'CONNECTED' ? 'Live' : status === 'CONNECTING' ? 'Connecting...' : 'Polling'}
+                </span>
+              </div>
+
+              {/* Notification Bell */}
+              <NotificationBell />
+
               {canCreateIncident && (
                 <Link
                   to="/incidents/new"
@@ -223,6 +264,9 @@ export const AppLayout: React.FC = () => {
           </main>
         </div>
       </div>
+
+      {/* Floating Live Alert Toasts */}
+      <LiveAlertToast />
     </div>
   );
 };

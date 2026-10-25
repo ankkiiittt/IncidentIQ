@@ -46,6 +46,9 @@ public class IncidentService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.incidentiq.knowledge.service.KnowledgeService knowledgeService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.incidentiq.notification.service.NotificationBroadcaster notificationBroadcaster;
+
     @org.springframework.beans.factory.annotation.Autowired
     public IncidentService(IncidentRepository incidentRepository,
                            IncidentEventRepository incidentEventRepository,
@@ -151,7 +154,11 @@ public class IncidentService {
                 )
         );
 
-        return IncidentDetailResponse.fromEntity(saved);
+        IncidentDetailResponse response = IncidentDetailResponse.fromEntity(saved);
+        if (notificationBroadcaster != null) {
+            notificationBroadcaster.broadcastIncident(response, "CREATED");
+        }
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -235,7 +242,20 @@ public class IncidentService {
                 )
         );
 
-        return IncidentDetailResponse.fromEntity(saved);
+        IncidentDetailResponse response = IncidentDetailResponse.fromEntity(saved);
+        if (notificationBroadcaster != null) {
+            notificationBroadcaster.broadcastIncident(response, "ASSIGNED");
+            notificationBroadcaster.broadcastIncidentDetail(saved.getId(), "ASSIGNED", response);
+            notificationBroadcaster.sendUserNotification(
+                    assignee.getId(),
+                    "Incident Assigned: " + saved.getFormattedNumber(),
+                    "You have been assigned to " + saved.getFormattedNumber() + ": " + saved.getTitle(),
+                    com.incidentiq.notification.entity.NotificationType.INCIDENT_ASSIGNED,
+                    "INCIDENT",
+                    saved.getId().toString()
+            );
+        }
+        return response;
     }
 
     public IncidentDetailResponse escalateIncident(UUID id, EscalateIncidentRequest request, User actor, String ipAddress) {
@@ -294,7 +314,22 @@ public class IncidentService {
                 )
         );
 
-        return IncidentDetailResponse.fromEntity(saved);
+        IncidentDetailResponse response = IncidentDetailResponse.fromEntity(saved);
+        if (notificationBroadcaster != null) {
+            notificationBroadcaster.broadcastIncident(response, "ESCALATED");
+            notificationBroadcaster.broadcastIncidentDetail(saved.getId(), "ESCALATED", response);
+            if (saved.getAssignee() != null) {
+                notificationBroadcaster.sendUserNotification(
+                        saved.getAssignee().getId(),
+                        "Incident Escalated: " + saved.getFormattedNumber(),
+                        "Priority elevated to " + saved.getPriority() + " for " + saved.getFormattedNumber(),
+                        com.incidentiq.notification.entity.NotificationType.INCIDENT_ESCALATED,
+                        "INCIDENT",
+                        saved.getId().toString()
+                );
+            }
+        }
+        return response;
     }
 
     public IncidentDetailResponse transitionStatus(UUID id, TransitionStatusRequest request, User actor, String ipAddress) {
@@ -371,7 +406,22 @@ public class IncidentService {
                 )
         );
 
-        return IncidentDetailResponse.fromEntity(saved);
+        IncidentDetailResponse response = IncidentDetailResponse.fromEntity(saved);
+        if (notificationBroadcaster != null) {
+            notificationBroadcaster.broadcastIncident(response, "STATUS_UPDATED");
+            notificationBroadcaster.broadcastIncidentDetail(saved.getId(), "STATUS_UPDATED", response);
+            if (saved.getAssignee() != null && !saved.getAssignee().getId().equals(actor.getId())) {
+                notificationBroadcaster.sendUserNotification(
+                        saved.getAssignee().getId(),
+                        "Incident Status Updated: " + saved.getFormattedNumber(),
+                        "Status changed to " + targetStatus + " by " + actor.getFullName(),
+                        com.incidentiq.notification.entity.NotificationType.INCIDENT_STATUS_CHANGED,
+                        "INCIDENT",
+                        saved.getId().toString()
+                );
+            }
+        }
+        return response;
     }
 
     public CommentResponse addComment(UUID id, AddCommentRequest request, User author) {
@@ -387,7 +437,11 @@ public class IncidentService {
                 Map.of("commentId", saved.getId().toString())
         ));
 
-        return CommentResponse.fromEntity(saved);
+        CommentResponse commentResponse = CommentResponse.fromEntity(saved);
+        if (notificationBroadcaster != null) {
+            notificationBroadcaster.broadcastIncidentDetail(incident.getId(), "COMMENT_ADDED", commentResponse);
+        }
+        return commentResponse;
     }
 
     public IncidentEventResponse addLogSnippet(UUID id, AddLogSnippetRequest request, User author) {
@@ -401,7 +455,11 @@ public class IncidentService {
                 Map.of("snippet", request.snippet())
         );
         IncidentEvent saved = incidentEventRepository.save(event);
-        return IncidentEventResponse.fromEntity(saved);
+        IncidentEventResponse eventResponse = IncidentEventResponse.fromEntity(saved);
+        if (notificationBroadcaster != null) {
+            notificationBroadcaster.broadcastIncidentDetail(incident.getId(), "LOG_ADDED", eventResponse);
+        }
+        return eventResponse;
     }
 
     @Transactional(readOnly = true)
