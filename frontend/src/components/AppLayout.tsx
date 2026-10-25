@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
+  BookOpen,
   KeyRound,
   LogOut,
   Plus,
@@ -108,6 +109,20 @@ export const AppLayout: React.FC = () => {
               >
                 <Server className="w-4 h-4" />
                 Services
+              </NavLink>
+
+              <NavLink
+                to="/knowledge"
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                    isActive
+                      ? 'bg-primary-light text-primary font-semibold'
+                      : 'text-muted hover:text-text hover:bg-slate-50'
+                  }`
+                }
+              >
+                <BookOpen className="w-4 h-4" />
+                Knowledge Base
               </NavLink>
 
               {user?.role === 'ADMIN' && (

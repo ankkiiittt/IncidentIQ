@@ -28,6 +28,9 @@ public class IncidentController {
     private final IncidentService incidentService;
     private final UserRepository userRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.incidentiq.knowledge.service.KnowledgeService knowledgeService;
+
     public IncidentController(IncidentService incidentService, UserRepository userRepository) {
         this.incidentService = incidentService;
         this.userRepository = userRepository;
@@ -146,6 +149,21 @@ public class IncidentController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<IncidentEventResponse>> getTimeline(@PathVariable UUID id) {
         return ResponseEntity.ok(incidentService.getTimeline(id));
+    }
+
+    @GetMapping("/{id}/similar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<com.incidentiq.knowledge.dto.SimilarIncidentResponse>> getSimilarIncidents(
+            @PathVariable UUID id,
+            @RequestParam(required = false) Double minSimilarity,
+            @RequestParam(required = false) Integer limit,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        User user = getCurrentUser(principal);
+        if (knowledgeService == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(knowledgeService.findSimilarIncidents(id, user, minSimilarity, limit));
     }
 
     private User getCurrentUser(UserPrincipal principal) {

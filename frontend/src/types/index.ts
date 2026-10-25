@@ -178,3 +178,72 @@ export interface DashboardData {
   recentIncidents: IncidentSummary[];
   serviceHealth: ServiceHealthSummary;
 }
+
+// Knowledge Base & Vector Search Types (Phase P6)
+export type DocumentSourceType = 'RUNBOOK' | 'FAQ' | 'POSTMORTEM' | 'INCIDENT';
+export type DocumentStatus = 'PROCESSING' | 'INGESTED' | 'FAILED';
+export type AccessLevel = 'PUBLIC' | 'ENGINEERING';
+
+export interface KnowledgeDocument {
+  id: string;
+  title: string;
+  sourceType: DocumentSourceType;
+  status: DocumentStatus;
+  accessLevel: AccessLevel;
+  serviceId?: string;
+  serviceName?: string;
+  contentHash: string;
+  chunkCount: number;
+  version: number;
+  errorMessage?: string;
+  incidentId?: string;
+  uploaderName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KnowledgeChunk {
+  id: string;
+  documentId: string;
+  chunkIndex: number;
+  tokenCount: number;
+  content: string;
+  sourceType: DocumentSourceType;
+  accessLevel: AccessLevel;
+  serviceId?: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface SemanticSearchResult {
+  chunkId: string;
+  documentId: string;
+  documentTitle: string;
+  sourceType: DocumentSourceType;
+  accessLevel: AccessLevel;
+  serviceId?: string;
+  serviceName?: string;
+  chunkIndex: number;
+  tokenCount: number;
+  similarity: number;
+  content: string;
+  snippet: string;
+  headingPath: string;
+}
+
+export interface SimilarIncident {
+  documentId: string;
+  incidentId?: string;
+  formattedNumber?: string;
+  incidentNumber?: string;
+  title: string;
+  severity: string;
+  priority: string;
+  status: string;
+  rootCause?: string;
+  resolution?: string;
+  resolvedAt?: string;
+  serviceName?: string;
+  similarity: number;
+}
+

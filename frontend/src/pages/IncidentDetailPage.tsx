@@ -8,12 +8,14 @@ import {
   ArrowLeft,
   CheckCircle2,
   Code2,
+  ExternalLink,
   History,
   Loader2,
   MessageSquare,
   RefreshCw,
   Send,
   ShieldAlert,
+  Sparkles,
   TrendingUp,
   UserPlus,
 } from 'lucide-react';
@@ -27,10 +29,11 @@ import {
   getTimelineApi,
   transitionStatusApi,
 } from '../api/incidents';
+import { getSimilarIncidentsApi } from '../api/knowledge';
 import { getUsersApi } from '../api/users';
 import { PriorityBadge, SeverityBadge, SlaPill, StatusChip } from '../components/Badges';
 import { useAuth } from '../context/AuthContext';
-import { IncidentStatus } from '../types';
+import { IncidentStatus, SimilarIncident } from '../types';
 
 export const IncidentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -85,10 +88,21 @@ export const IncidentDetailPage: React.FC = () => {
     enabled: isAssignOpen,
   });
 
+  const {
+    data: similarIncidents = [],
+    isLoading: similarLoading,
+    refetch: refetchSimilar,
+  } = useQuery({
+    queryKey: ['similar-incidents', id],
+    queryFn: () => getSimilarIncidentsApi(id!),
+    enabled: !!id,
+  });
+
   const refreshAll = () => {
     refetchIncident();
     refetchComments();
     refetchTimeline();
+    refetchSimilar();
   };
 
   // Mutations
@@ -532,6 +546,70 @@ export const IncidentDetailPage: React.FC = () => {
                   <Code2 className="w-3.5 h-3.5" />
                   Attach Log Snippet
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* Similar Incidents Card (pgvector similarity search) */}
+          <div className="card-surface p-4 space-y-3 text-xs">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <div className="flex items-center gap-1.5 font-bold text-text uppercase tracking-wider text-[11px]">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                Similar Resolved Incidents ({similarIncidents.length})
+              </div>
+              <span className="text-[10px] text-muted font-medium bg-slate-100 px-1.5 py-0.5 rounded">
+                pgvector
+              </span>
+            </div>
+
+            {similarLoading ? (
+              <div className="py-4 text-center text-muted">
+                <Loader2 className="w-4 h-4 animate-spin mx-auto text-primary mb-1" />
+                <span className="text-[11px]">Searching resolved incident vectors...</span>
+              </div>
+            ) : similarIncidents.length === 0 ? (
+              <p className="text-[11px] text-muted italic py-1 leading-relaxed">
+                No sufficiently similar past incidents found in the knowledge base (≥35% match).
+              </p>
+            ) : (
+              <div className="space-y-2.5 pt-1">
+                {similarIncidents.map((sim: SimilarIncident) => {
+                  const matchPct = Math.round(sim.similarity * 100);
+                  return (
+                    <div
+                      key={sim.documentId}
+                      className="p-3 rounded-lg bg-slate-50 border border-border space-y-2 hover:border-primary/40 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 tabular-nums">
+                          {matchPct}% Match
+                        </span>
+                        {sim.incidentId && (
+                          <button
+                            onClick={() => navigate(`/incidents/${sim.incidentId}`)}
+                            className="text-primary hover:text-primary-hover font-semibold text-[11px] inline-flex items-center gap-1"
+                          >
+                            {sim.formattedNumber || sim.incidentNumber || 'View'}
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+
+                      <h4 className="font-semibold text-text text-xs leading-snug">
+                        {sim.title}
+                      </h4>
+
+                      {sim.resolution && (
+                        <div className="bg-white p-2 rounded border border-border/80 text-[11px] text-slate-700 leading-relaxed">
+                          <strong className="text-slate-900 block text-[10px] uppercase font-bold text-emerald-800 mb-0.5">
+                            Resolution:
+                          </strong>
+                          <p className="line-clamp-2">{sim.resolution}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

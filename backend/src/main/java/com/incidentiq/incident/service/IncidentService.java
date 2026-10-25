@@ -43,6 +43,9 @@ public class IncidentService {
     private final jakarta.persistence.EntityManager entityManager;
     private final com.incidentiq.messaging.service.OutboxService outboxService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.incidentiq.knowledge.service.KnowledgeService knowledgeService;
+
     @org.springframework.beans.factory.annotation.Autowired
     public IncidentService(IncidentRepository incidentRepository,
                            IncidentEventRepository incidentEventRepository,
@@ -334,6 +337,10 @@ public class IncidentService {
         incident.setSlaBreached(slaCalculator.isSlaBreached(incident, Instant.now()));
 
         Incident saved = incidentRepository.saveAndFlush(incident);
+
+        if (targetStatus == IncidentStatus.RESOLVED && knowledgeService != null) {
+            knowledgeService.ingestIncidentAsDocument(saved);
+        }
 
         incidentEventRepository.save(new IncidentEvent(
                 saved,
