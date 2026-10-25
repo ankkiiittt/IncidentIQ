@@ -21,13 +21,26 @@ public class IncidentLifecycleConsumer {
     private final IdempotentConsumerService idempotentConsumerService;
     private final CacheManager cacheManager;
     private final ObjectMapper objectMapper;
+    private final com.incidentiq.ai.service.AiDiagnosticService aiDiagnosticService;
+    private final com.incidentiq.ai.service.SettingsService settingsService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public IncidentLifecycleConsumer(IdempotentConsumerService idempotentConsumerService,
+                                     CacheManager cacheManager,
+                                     ObjectMapper objectMapper,
+                                     @org.springframework.beans.factory.annotation.Autowired(required = false) com.incidentiq.ai.service.AiDiagnosticService aiDiagnosticService,
+                                     @org.springframework.beans.factory.annotation.Autowired(required = false) com.incidentiq.ai.service.SettingsService settingsService) {
+        this.idempotentConsumerService = idempotentConsumerService;
+        this.cacheManager = cacheManager;
+        this.objectMapper = objectMapper;
+        this.aiDiagnosticService = aiDiagnosticService;
+        this.settingsService = settingsService;
+    }
 
     public IncidentLifecycleConsumer(IdempotentConsumerService idempotentConsumerService,
                                      CacheManager cacheManager,
                                      ObjectMapper objectMapper) {
-        this.idempotentConsumerService = idempotentConsumerService;
-        this.cacheManager = cacheManager;
-        this.objectMapper = objectMapper;
+        this(idempotentConsumerService, cacheManager, objectMapper, null, null);
     }
 
     @KafkaListener(
@@ -58,6 +71,23 @@ public class IncidentLifecycleConsumer {
 
             // 2. Cache Invalidation on incident lifecycle mutations
             invalidateCaches();
+
+            // 3. Auto-trigger AI triage on incident creation
+            if ("incident.created".equals(type) && aiDiagnosticService != null && settingsService != null) {
+                if (settingsService.isAutoAnalyzeEnabled()) {
+                    String aggIdStr = root.path("aggregateId").asText();
+                    if (aggIdStr != null && !aggIdStr.isBlank()) {
+                        try {
+                            UUID incId = UUID.fromString(aggIdStr);
+                            String corrId = root.path("correlationId").asText();
+                            log.info("Auto-triggering AI triage analysis for incident {}", incId);
+                            aiDiagnosticService.analyzeIncident(incId, com.incidentiq.ai.entity.AnalysisTrigger.AUTO, null, corrId);
+                        } catch (Exception ex) {
+                            log.warn("Auto-analyze on incident creation failed: {}", ex.getMessage());
+                        }
+                    }
+                }
+            }
 
         } catch (Exception e) {
             log.error("Failed to process incident lifecycle event: {}", message, e);

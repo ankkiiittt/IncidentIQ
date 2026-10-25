@@ -9,6 +9,7 @@ import {
   Loader2,
   Plus,
   Shield,
+  Sparkles,
   UserCheck,
   UserX,
   Users,
@@ -19,6 +20,7 @@ import {
   resetPasswordApi,
   updateUserApi,
 } from '../api/users';
+import { getAdminSettings, updateAdminSetting } from '../api/ai';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 
@@ -26,10 +28,11 @@ export const AdminPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'users' | 'policy'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'policy' | 'ai'>('users');
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [resetSuccessModal, setResetSuccessModal] = useState<{ email: string; tempPass: string } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   // New user form state
   const [newName, setNewName] = useState('');
@@ -81,6 +84,29 @@ export const AdminPage: React.FC = () => {
     },
     onError: (err: Error) => setActionError(err.message),
   });
+
+  // AI Settings Query & Mutation
+  const { data: aiSettings = [], isLoading: aiSettingsLoading } = useQuery({
+    queryKey: ['admin-ai-settings'],
+    queryFn: getAdminSettings,
+    enabled: activeTab === 'ai',
+  });
+
+  const updateSettingMutation = useMutation({
+    mutationFn: ({ key, value, description }: { key: string; value: unknown; description?: string }) =>
+      updateAdminSetting(key, { value, description }),
+    onSuccess: (updated) => {
+      setSaveSuccessMsg(`Updated setting "${updated.key}" successfully.`);
+      queryClient.invalidateQueries({ queryKey: ['admin-ai-settings'] });
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
+  const getSettingVal = <T,>(key: string, defaultVal: T): T => {
+    const s = aiSettings.find((x) => x.key === key);
+    return s && s.value !== undefined ? (s.value as T) : defaultVal;
+  };
 
   if (currentUser?.role !== 'ADMIN') {
     return (
@@ -150,7 +176,30 @@ export const AdminPage: React.FC = () => {
           <Shield className="w-4 h-4" />
           Access & Lockout Policies
         </button>
+        <button
+          onClick={() => setActiveTab('ai')}
+          className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors ${
+            activeTab === 'ai'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-muted hover:text-text'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          AI Intelligence Configuration
+        </button>
       </div>
+
+      {saveSuccessMsg && (
+        <div className="card-surface p-3 bg-emerald-50 border-emerald-200 text-xs text-emerald-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{saveSuccessMsg}</span>
+          </div>
+          <button onClick={() => setSaveSuccessMsg(null)} className="text-emerald-700 font-bold ml-2">
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Tab 1: Users Table */}
       {activeTab === 'users' && (
@@ -285,6 +334,186 @@ export const AdminPage: React.FC = () => {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tab 3: AI Intelligence Configuration */}
+      {activeTab === 'ai' && (
+        <div className="card-surface p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
+            <div>
+              <h3 className="text-sm font-bold text-text">AI Diagnostic & RCA Engine Configuration</h3>
+              <p className="text-xs text-muted mt-0.5">
+                Tune retrieval-augmented generation (RAG) thresholds, automatic triage triggers, and rate quotas.
+              </p>
+            </div>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
+              Runtime Settings
+            </span>
+          </div>
+
+          {aiSettingsLoading ? (
+            <div className="py-12 flex flex-col items-center justify-center text-muted">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mb-2" />
+              <span className="text-xs">Loading AI system settings...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+              {/* 1. Master Switch: ai.enabled */}
+              <div className="p-4 rounded-lg border border-border bg-slate-50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-text text-xs block">AI Pipeline Master Switch</span>
+                    <span className="text-[11px] text-muted">Key: ai.enabled</span>
+                  </div>
+                  <button
+                    onClick={() =>
+                      updateSettingMutation.mutate({
+                        key: 'ai.enabled',
+                        value: !getSettingVal('ai.enabled', true),
+                      })
+                    }
+                    disabled={updateSettingMutation.isPending}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                      getSettingVal('ai.enabled', true)
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-slate-300 text-slate-700 hover:bg-slate-400'
+                    }`}
+                  >
+                    {getSettingVal('ai.enabled', true) ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  When disabled, all automated triage invocations and manual AI diagnostic requests are blocked with a conflict status.
+                </p>
+              </div>
+
+              {/* 2. Automated Trigger: ai.auto_analyze */}
+              <div className="p-4 rounded-lg border border-border bg-slate-50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-text text-xs block">Automated Incident Triage</span>
+                    <span className="text-[11px] text-muted">Key: ai.auto_analyze</span>
+                  </div>
+                  <button
+                    onClick={() =>
+                      updateSettingMutation.mutate({
+                        key: 'ai.auto_analyze',
+                        value: !getSettingVal('ai.auto_analyze', true),
+                      })
+                    }
+                    disabled={updateSettingMutation.isPending}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                      getSettingVal('ai.auto_analyze', true)
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        : 'bg-slate-300 text-slate-700 hover:bg-slate-400'
+                    }`}
+                  >
+                    {getSettingVal('ai.auto_analyze', true) ? 'Active' : 'Off'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Automatically launches grounded AI diagnostic pipeline asynchronously whenever an incident is created.
+                </p>
+              </div>
+
+              {/* 3. Top-K Knowledge Chunks: ai.rag.top_k */}
+              <div className="p-4 rounded-lg border border-border bg-slate-50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-text text-xs block">RAG Retrieved Chunks (Top-K)</span>
+                    <span className="text-[11px] text-muted">Key: ai.rag.top_k</span>
+                  </div>
+                  <span className="font-mono font-bold text-sm text-text bg-white px-2 py-0.5 rounded border border-border">
+                    {getSettingVal('ai.rag.top_k', 5)}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Maximum number of relevant runbook/postmortem vector chunks supplied in the evidence prompt context.
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="15"
+                    step="1"
+                    value={getSettingVal('ai.rag.top_k', 5)}
+                    onChange={(e) =>
+                      updateSettingMutation.mutate({
+                        key: 'ai.rag.top_k',
+                        value: parseInt(e.target.value, 10),
+                      })
+                    }
+                    className="w-full accent-indigo-600"
+                  />
+                </div>
+              </div>
+
+              {/* 4. Min Similarity Threshold: ai.rag.min_similarity */}
+              <div className="p-4 rounded-lg border border-border bg-slate-50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-text text-xs block">Minimum Similarity Threshold</span>
+                    <span className="text-[11px] text-muted">Key: ai.rag.min_similarity</span>
+                  </div>
+                  <span className="font-mono font-bold text-sm text-text bg-white px-2 py-0.5 rounded border border-border">
+                    {Math.round(getSettingVal('ai.rag.min_similarity', 0.40) * 100)}%
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Cosine similarity cutoff. If no chunks pass this threshold, analysis terminates early with INSUFFICIENT_EVIDENCE.
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="0.10"
+                    max="0.90"
+                    step="0.05"
+                    value={getSettingVal('ai.rag.min_similarity', 0.40)}
+                    onChange={(e) =>
+                      updateSettingMutation.mutate({
+                        key: 'ai.rag.min_similarity',
+                        value: parseFloat(e.target.value),
+                      })
+                    }
+                    className="w-full accent-indigo-600"
+                  />
+                </div>
+              </div>
+
+              {/* 5. User Hourly Rate Limit: ai.rate_limit_per_user_per_hour */}
+              <div className="p-4 rounded-lg border border-border bg-slate-50 space-y-3 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-text text-xs block">Manual Analysis Rate Limit</span>
+                    <span className="text-[11px] text-muted">Key: ai.rate_limit_per_user_per_hour</span>
+                  </div>
+                  <span className="font-mono font-bold text-sm text-text bg-white px-2.5 py-0.5 rounded border border-border">
+                    {getSettingVal('ai.rate_limit_per_user_per_hour', 10)} runs / hour
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Controls budget and rate limiting across engineers to prevent accidental LLM provider cost overrun.
+                </p>
+                <div className="flex items-center gap-3 max-w-sm">
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    step="1"
+                    value={getSettingVal('ai.rate_limit_per_user_per_hour', 10)}
+                    onChange={(e) =>
+                      updateSettingMutation.mutate({
+                        key: 'ai.rate_limit_per_user_per_hour',
+                        value: parseInt(e.target.value, 10),
+                      })
+                    }
+                    className="w-full accent-indigo-600"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

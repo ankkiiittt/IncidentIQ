@@ -31,6 +31,7 @@ import {
 } from '../api/incidents';
 import { getSimilarIncidentsApi } from '../api/knowledge';
 import { getUsersApi } from '../api/users';
+import { AiDiagnosticsCard } from '../components/AiDiagnosticsCard';
 import { PriorityBadge, SeverityBadge, SlaPill, StatusChip } from '../components/Badges';
 import { useAuth } from '../context/AuthContext';
 import { IncidentStatus, SimilarIncident } from '../types';
@@ -379,6 +380,16 @@ export const IncidentDetailPage: React.FC = () => {
               {incident.description}
             </p>
           </div>
+
+          {/* AI Diagnostics & Root Cause Analysis Panel (Screen S4/S5) */}
+          <AiDiagnosticsCard
+            incident={incident}
+            canManage={!!canUpdate}
+            onIncidentUpdated={() => {
+              refetchIncident();
+              refetchTimeline();
+            }}
+          />
 
           {/* Root Cause & Resolution (if resolved) */}
           {(incident.rootCause || incident.resolution) && (
